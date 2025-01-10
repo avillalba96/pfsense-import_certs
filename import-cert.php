@@ -1,9 +1,5 @@
 <?php
-
-/**
- * Import SSL certificates from a pre-determined place on the filesystem.
- * Once imported, set them for use in the GUI
- */
+// Adpatado en base a https://github.com/zxsecurity/pfsense-import-certificate
 
 if (empty($argc)) {
 	echo "Only accessible from the CLI.\r\n";
@@ -23,6 +19,7 @@ require_once "shaper.inc";
 
 $certificate = trim(file_get_contents($argv[1]));
 $key = trim(file_get_contents($argv[2]));
+$name = preg_replace('/\\.[^.\\s]{3,4}$/', '', $argv[1]);
 
 // Do some quick verification of the certificate, similar to what the GUI does
 if (empty($certificate)) {
@@ -46,7 +43,7 @@ if (cert_get_publickey($certificate, false) != cert_get_publickey($key, false, '
 
 $cert = array();
 $cert['refid'] = uniqid();
-$cert['descr'] = "Certificate added to pfsense through " . $argv[0] . " on " . date("Y/m/d");
+$cert['descr'] = $name;
 
 cert_import($cert, $certificate, $key);
 
@@ -85,12 +82,4 @@ $a_cert[] = $cert;
 // Write out the updated configuration
 write_config();
 
-// Assuming that all worked, we now need to set the new certificate for use in the GUI
-$config['system']['webgui']['ssl-certref'] = $cert['refid'];
-
-write_config();
-
-log_error(gettext("webConfigurator configuration has changed. Restarting webConfigurator."));
-send_event("service restart webgui");
-
-echo "Completed! New certificate installed.\r\n";
+echo "Completed! New certificate $name installed.\r\n";
