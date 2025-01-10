@@ -8,6 +8,6 @@ do
   BASE=$(basename "$f")
   BASE=${BASE%.*}
   #echo $BASE
-  php /root/keys/importar-certs.php "$BASE".crt "$BASE".key
+  php /root/keys/import-cert.php "$BASE".crt "$BASE".key
 done
 
