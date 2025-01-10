@@ -129,4 +129,3 @@ The log includes:
 ## 📌 Reference
 
 This project is adapted from [zxsecurity/pfsense-import-certificate](https://github.com/zxsecurity/pfsense-import-certificate).
-```
