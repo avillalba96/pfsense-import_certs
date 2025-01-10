@@ -1,6 +1,6 @@
-# pfSense OpenVPN Certificates Import Tool
+# pfSense OpenVPN Certificates Migration Tool
 
-This tool simplifies the process of **migrating OpenVPN certificates** to a pfSense system. It automates the decoding of Base64-encoded `.crt` and `.key` files, followed by their importation into the pfSense certificate manager. This is particularly useful for quick and seamless OpenVPN migrations.
+This tool simplifies the process of **migrating OpenVPN certificates** between pfSense systems. It automates exporting, compressing, transferring, and importing certificates for seamless OpenVPN migrations.
 
 Based on [zxsecurity/pfsense-import-certificate](https://github.com/zxsecurity/pfsense-import-certificate).
 
@@ -8,66 +8,88 @@ Based on [zxsecurity/pfsense-import-certificate](https://github.com/zxsecurity/p
 
 ## 📥 Setup Instructions
 
-### 1. Connect to your pfSense system via SSH
-Replace `x.x.x.x` with the IP address of your pfSense system:
-```bash
-ssh root@x.x.x.x -p22
-```
+### 1. Source pfSense: Export Certificates
 
-### 2. Prepare the working directories
-Create the main directory for the migration and a subdirectory for the OpenVPN certificates:
-```bash
-mkdir -p /root/keys/certs && cd /root/keys
-```
+1. **Connect to the source pfSense system**:
+   ```bash
+   ssh root@<source_pfsense_ip> -p22
+   ```
 
-### 3. Download the required scripts
-Fetch the necessary scripts directly from the GitHub repository:
-```bash
-fetch https://raw.githubusercontent.com/avillalba96/pfsense-import_certs/refs/heads/master/import-cert.php
-fetch https://raw.githubusercontent.com/avillalba96/pfsense-import_certs/refs/heads/master/import-certs.sh
-```
+2. **Prepare the environment**:
+   ```bash
+   mkdir -p /root/keys
+   fetch https://raw.githubusercontent.com/avillalba96/pfsense-import_certs/refs/heads/master/export-certs.php
+   php export-certs.php /root/keys
+   ```
 
-### 4. Upload your OpenVPN certificates
-Copy your Base64-encoded `.crt` and `.key` files for OpenVPN users into the `/root/keys/certs` directory.
+   - This will generate `/root/keys/certs/` containing all exported `.crt` and `.key` files.
 
-### 5. Run the import script
-Execute the shell script to decode and import the OpenVPN certificates:
-```bash
-sh import-certs.sh
-```
+3. **Compress the exported certificates**:
+   ```bash
+   tar -czvf /root/keys/certs.tar.gz -C /root/keys certs
+   ```
+
+4. **Transfer the compressed file to the destination pfSense**:
+   ```bash
+   scp -P 22 /root/keys/certs.tar.gz root@<destination_pfsense_ip>:/root/keys/
+   ```
+
+---
+
+### 2. Destination pfSense: Import Certificates
+
+1. **Connect to the destination pfSense system**:
+   ```bash
+   ssh root@<destination_pfsense_ip> -p22
+   ```
+
+2. **Decompress the certificates**:
+   ```bash
+   tar -xzvf /root/keys/certs.tar.gz -C /root/keys
+   ```
+
+3. **Download and execute the import script**:
+   ```bash
+   fetch https://raw.githubusercontent.com/avillalba96/pfsense-import_certs/refs/heads/master/import-cert.php
+   fetch https://raw.githubusercontent.com/avillalba96/pfsense-import_certs/refs/heads/master/import-certs.sh
+   sh /root/keys/import-certs.sh
+   ```
 
 ---
 
 ## 📂 Directory Structure
 
-After setup, your directory structure should look like this:
+After setup, your directory structure will look like this:
 ```
 /root/keys/
 ├── certs/        # Place your Base64-encoded .crt and .key files here
 ├── decode/       # Decoded files will be generated here (automatically created)
 ├── import-cert.php
 ├── import-certs.sh
+├── certs.tar.gz  # Compressed certificates for transfer
 ```
 
 ---
 
-## 📄 What the Script Does
+## 📄 What the Scripts Do
 
-1. **Decode Base64-encoded certificates**:
-   - `.crt` and `.key` files from `/root/keys/certs/` are decoded into the `/root/keys/decode/` directory.
+### Export Script (`export-certs.php`):
+- Exports certificates from the pfSense certificate manager.
+- Saves `.crt` and `.key` files into `/root/keys/certs/`.
 
-2. **Import certificates into pfSense**:
-   - The script imports the certificates into the pfSense **System > Certificate Manager**.
+### Import Script (`import-certs.sh`):
+1. **Decodes Base64-encoded `.crt` and `.key` files**:
+   - Outputs decoded files to `/root/keys/decode/`.
 
-3. **Logs the process**:
-   - A detailed log is created at `/root/keys/import.log`, including:
-     - Certificates successfully imported.
-     - Certificates already present in pfSense.
-     - Errors encountered during the import process.
+2. **Imports certificates into pfSense**:
+   - Registers certificates in **System > Certificate Manager**.
+
+3. **Logs all actions**:
+   - Creates `/root/keys/import.log` with details of success, failures, and duplicates.
 
 ---
 
-## 📝 Logs
+## 📑 Logs
 
 To view the log file:
 ```bash
@@ -75,57 +97,49 @@ cat /root/keys/import.log
 ```
 
 The log includes:
-- Certificates successfully imported into pfSense.
-- Certificates that were already imported.
-- Errors encountered, such as missing `.crt` or `.key` files.
+- Certificates successfully imported.
+- Certificates already present.
+- Errors, such as missing `.crt` or `.key` files.
 
 ---
 
 ## ✅ Features
 
-- **Quick OpenVPN migration**: Simplifies the process of transferring user certificates to pfSense.
-- **Automation**: Decodes Base64 files and imports them with minimal manual intervention.
-- **Comprehensive logs**: Tracks every certificate's status during the migration.
-- **Idempotent**: Skips certificates that are already imported.
+- **Quick OpenVPN migration**: Transfers user certificates between pfSense systems.
+- **Automation**: Decodes Base64 files and imports them into the destination system.
+- **Comprehensive logs**: Tracks every certificate's status during migration.
+- **Idempotent**: Certificates already imported are skipped.
 
 ---
 
 ## 🚀 Example Workflow
 
-1. **Connect to pfSense**:
-    ```bash
-    ssh root@192.168.1.1 -p22
-    ```
+1. **On the source pfSense**:
+   ```bash
+   ssh root@<source_pfsense_ip> -p22
+   mkdir -p /root/keys
+   fetch https://raw.githubusercontent.com/avillalba96/pfsense-import_certs/refs/heads/master/export-certs.php
+   php export-certs.php /root/keys
+   tar -czvf /root/keys/certs.tar.gz -C /root/keys certs
+   scp -P 22 /root/keys/certs.tar.gz root@<destination_pfsense_ip>:/root/keys/
+   ```
 
-2. **Set up the environment**:
-    ```bash
-    mkdir -p /root/keys/certs && cd /root/keys
-    fetch https://raw.githubusercontent.com/avillalba96/pfsense-import_certs/refs/heads/master/import-cert.php
-    fetch https://raw.githubusercontent.com/avillalba96/pfsense-import_certs/refs/heads/master/import-certs.sh
-    ```
+2. **On the destination pfSense**:
+   ```bash
+   ssh root@<destination_pfsense_ip> -p22
+   tar -xzvf /root/keys/certs.tar.gz -C /root/keys
+   fetch https://raw.githubusercontent.com/avillalba96/pfsense-import_certs/refs/heads/master/import-cert.php
+   fetch https://raw.githubusercontent.com/avillalba96/pfsense-import_certs/refs/heads/master/import-certs.sh
+   sh /root/keys/import-certs.sh
+   ```
 
-3. **Upload OpenVPN certificates**:
-    - Add `.crt` and `.key` files (Base64-encoded) for OpenVPN users to `/root/keys/certs`.
-
-4. **Run the script**:
-    ```bash
-    sh import-certs.sh
-    ```
-
-5. **Check the log for results**:
-    ```bash
-    cat /root/keys/import.log
-    ```
-
----
-
-## ℹ️ Notes
-
-- This tool is specifically designed for **migrating OpenVPN certificates** during pfSense deployments or upgrades.
-- Ensure that your `.crt` and `.key` files are encoded in **Base64** before placing them in `/root/keys/certs`.
+3. **Verify logs**:
+   ```bash
+   cat /root/keys/import.log
+   ```
 
 ---
 
-## 📌 Reference
+## ℹ️ Reference
 
-This project is adapted from [zxsecurity/pfsense-import-certificate](https://github.com/zxsecurity/pfsense-import-certificate).
+This project is based on [zxsecurity/pfsense-import-certificate](https://github.com/zxsecurity/pfsense-import-certificate) and adapted for OpenVPN migrations.
