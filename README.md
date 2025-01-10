@@ -2,6 +2,7 @@
 
 * No se probo nada, solo esta de ejemplo en base a:
 <https://github.com/zxsecurity/pfsense-import-certificate>
+* Esto es para poder migrar Certificados de forma sencilla, usado por ejemplo para la migracion del servicio OpenVPN, y solo se migran los certificados de los usuarios, **NO DEL SERVIDIOR OPENVPN**, ese se puede hacer de forma manual ya que necesitas el CA y el CERTIFICADO y reconfigurar el Servicio asociandolos
 
 ```bash
 ssh root@119.8.74.184 -p5522
