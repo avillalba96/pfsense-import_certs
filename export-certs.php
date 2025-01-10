@@ -39,7 +39,8 @@ foreach ($certs as $cert) {
     $name = isset($cert['descr']) ? $cert['descr'] : "cert_" . $count;
 
     // Prepare safe file names
-    $safeName = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $name);
+    // $safeName = preg_replace('/[^a-zA-Z0-9_\.\-]/', '_', $name);
+    $safeName = preg_replace('/[^a-zA-Z0-9_\.\-\ ]/', '_', $name);
 
     // Write certificate
     if (!empty($cert['crt'])) {
