@@ -1,14 +1,14 @@
 <?php
-// Adpatado en base a https://github.com/zxsecurity/pfsense-import-certificate
+// Adapted from https://github.com/zxsecurity/pfsense-import-certificate
 
-if (empty($argc)) {
-	echo "Only accessible from the CLI.\r\n";
-	die(1);
+if (php_sapi_name() !== 'cli') {
+    echo "This script can only be run from the CLI.\r\n";
+    die(1);
 }
 
-if ($argc != 2) {
-	echo "Usage: php " . $argv[0] . " nombre-de-certificado\r\n";
-	die(1);
+if ($argc < 2) {
+    echo "Usage: php " . $argv[0] . " certificate-name [CA-ref-id]\r\n";
+    die(1);
 }
 
 require_once "certs.inc";
@@ -17,62 +17,98 @@ require_once "functions.inc";
 require_once "filter.inc";
 require_once "shaper.inc";
 
+// Certificate name and CA reference ID
 $name = cert_escape_x509_chars($argv[1]);
-$caref = "5e2708ac57caa"; //Remplazar con ID del CA a utilizar
+$caref = isset($argv[2]) ? $argv[2] : null;
 
-$pconfig['keytype'] = "RSA";
-$pconfig['keylen'] = "4096";
-$pconfig['ecname'] = "prime256v1";
-$pconfig['digest_alg'] = "sha512";
-$pconfig['type'] = "user";
-$pconfig['lifetime'] = 3650;
+if (!$caref) {
+    echo "Enter the CA Reference ID: ";
+    $caref = trim(fgets(STDIN));
+    if (empty($caref)) {
+        echo "CA Reference ID is required.\r\n";
+        die(1);
+    }
+}
 
-$dn = array('commonName' => cert_escape_x509_chars($argv[1]));
-$dn['countryName'] = "AR";
-$dn['stateOrProvinceName'] = cert_escape_x509_chars("Santa Fe");
-$dn['localityName'] = cert_escape_x509_chars("Santa Fe");
-$dn['organizationName'] = cert_escape_x509_chars("El Litoral S.R.L.");
-$dn['organizationalUnitName'] = cert_escape_x509_chars("Terceros");
+// Request additional certificate parameters
+echo "Enter the key type (default: RSA): ";
+$keytype = trim(fgets(STDIN)) ?: "RSA";
 
+echo "Enter the key length (default: 4096): ";
+$keylen = trim(fgets(STDIN)) ?: "4096";
+
+echo "Enter the digest algorithm (default: sha512): ";
+$digest_alg = trim(fgets(STDIN)) ?: "sha512";
+
+echo "Enter the certificate lifetime in days (default: 3650): ";
+$lifetime = trim(fgets(STDIN)) ?: 3650;
+
+echo "Enter the country name (default: AR): ";
+$countryName = trim(fgets(STDIN)) ?: "AR";
+
+echo "Enter the state/province name (default: Santa Fe): ";
+$stateOrProvinceName = trim(fgets(STDIN)) ?: "Santa Fe";
+
+echo "Enter the locality name (default: Santa Fe): ";
+$localityName = trim(fgets(STDIN)) ?: "Santa Fe";
+
+echo "Enter the organization name (default: El Litoral S.R.L.): ";
+$organizationName = trim(fgets(STDIN)) ?: "El Litoral S.R.L.";
+
+echo "Enter the organizational unit name (default: Terceros): ";
+$organizationalUnitName = trim(fgets(STDIN)) ?: "Terceros";
+
+// Certificate DN
+$dn = array(
+    'commonName' => $name,
+    'countryName' => $countryName,
+    'stateOrProvinceName' => $stateOrProvinceName,
+    'localityName' => $localityName,
+    'organizationName' => $organizationName,
+    'organizationalUnitName' => $organizationalUnitName
+);
+
+// Prepare certificate configuration
+$pconfig = array(
+    'keytype' => $keytype,
+    'keylen' => $keylen,
+    'digest_alg' => $digest_alg,
+    'type' => "user",
+    'lifetime' => $lifetime,
+);
+
+// Create the certificate
 $cert = array();
 $cert['refid'] = uniqid();
 $cert['descr'] = $name;
 
-cert_create($cert, $caref , $pconfig['keylen'], $pconfig['lifetime'], $dn, $pconfig['type'], $pconfig['digest_alg'], $pconfig['keytype'], $pconfig['ecname']);
+cert_create($cert, $caref, $pconfig['keylen'], $pconfig['lifetime'], $dn, $pconfig['type'], $pconfig['digest_alg'], $pconfig['keytype'], $pconfig['ecname']);
 
-// Set up the existing certificate store
-// Copied from system_certmanager.php
+// Ensure certificate arrays exist in configuration
 if (!is_array($config['ca'])) {
-	$config['ca'] = array();
+    $config['ca'] = array();
 }
 
-$a_ca =& $config['ca'];
+$a_ca = &$config['ca'];
 
 if (!is_array($config['cert'])) {
-	$config['cert'] = array();
+    $config['cert'] = array();
 }
 
-$a_cert =& $config['cert'];
+$a_cert = &$config['cert'];
 
-$internal_ca_count = 0;
-foreach ($a_ca as $ca) {
-	if ($ca['prv']) {
-		$internal_ca_count++;
-	}
-}
-
-// Check if the certificate we just parsed is already imported (we'll check the certificate portion)
+// Check if the certificate already exists
 foreach ($a_cert as $existing_cert) {
-	if ($existing_cert['crt'] === $cert['crt']) {
-		echo "Ya existe el certificado $name.\r\n";
-		die(); // exit with a valid error code, as this is intended behaviour
-	}
+    if ($existing_cert['crt'] === $cert['crt']) {
+        echo "The certificate $name already exists.\r\n";
+        die(0); // Exit gracefully
+    }
 }
 
-// Append the final certificate
+// Append the new certificate
 $a_cert[] = $cert;
 
-// Write out the updated configuration
+// Save the updated configuration
 write_config();
 
-echo "Se genero correctamente el certificado $name.\r\n";
+echo "Certificate $name was successfully created.\r\n";
