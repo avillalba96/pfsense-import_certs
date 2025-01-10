@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #Entra al directorio donde se copiaron los certificados
 # e importa todos los archivos que tengan el par .crt y .key
 cd /root/keys || exit
