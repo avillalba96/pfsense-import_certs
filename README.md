@@ -130,18 +130,3 @@ The log includes:
 
 This project is adapted from [zxsecurity/pfsense-import-certificate](https://github.com/zxsecurity/pfsense-import-certificate).
 ```
-
----
-
-### **Mejoras Implementadas**
-1. **Claridad en el objetivo del proyecto**:
-   - Se especifica que el propósito principal es la **migración rápida de certificados OpenVPN**.
-
-2. **Directorio y flujo de trabajo orientado a OpenVPN**:
-   - Se detalla dónde deben colocarse los certificados de OpenVPN y cómo procesarlos.
-
-3. **Logs mejorados**:
-   - Se resalta la importancia de los logs y cómo revisarlos.
-
-4. **Idempotencia**:
-   - Se enfatiza que los certificados ya presentes no se duplicarán.
