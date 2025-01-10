@@ -7,7 +7,7 @@ if (empty($argc)) {
 }
 
 if ($argc != 3) {
-	echo "Usage: php " . $argv[0] . " /path/to/certificate.crt /path/to/private/key.pem\r\n";
+	echo "Usage: php " . $argv[0] . " /path/to/certificate.crt /path/to/private/certificate.key\r\n";
 	die(1);
 }
 
